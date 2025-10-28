@@ -50,6 +50,13 @@ fi
 # CocoaPods 설치
 echo "📦 Installing CocoaPods dependencies..."
 cd ios
-pod install
+
+# 캐시된 Podfile.lock 및 Pods 제거 (Xcode Cloud 환경에서 충돌 방지)
+echo "🧹 Cleaning up old CocoaPods cache..."
+rm -rf Pods Podfile.lock
+
+# CocoaPods 설치 (repo 업데이트와 함께)
+echo "🔧 Running pod install..."
+pod install --repo-update
 
 echo "✅ Dependencies installed successfully!"
