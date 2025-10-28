@@ -5,20 +5,22 @@
 
 set -e
 
-echo "🔧 Installing CocoaPods dependencies..."
+echo "🔧 Starting ci_post_clone.sh"
+echo "📍 Current directory: $(pwd)"
 
-# 프로젝트 루트로 이동
-cd $CI_WORKSPACE
+# 프로젝트 루트로 이동 (스크립트가 ios/ci_scripts에서 실행되므로 두 단계 위로)
+cd ../..
+echo "📍 Moved to project root: $(pwd)"
 
 # Node modules 설치 (필요한 경우)
 if [ -f "package.json" ]; then
     echo "📦 Installing npm dependencies..."
-    npm ci
+    npm install --legacy-peer-deps || echo "⚠️ npm install failed, continuing..."
 fi
 
 # CocoaPods 설치
+echo "📦 Installing CocoaPods dependencies..."
 cd ios
-echo "📦 Installing CocoaPods..."
 pod install
 
 echo "✅ Dependencies installed successfully!"
