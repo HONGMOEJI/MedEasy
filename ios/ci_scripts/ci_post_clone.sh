@@ -1,7 +1,7 @@
 #!/bin/sh
 
 # Xcode Cloud가 저장소를 클론한 후 실행되는 스크립트
-# Node.js 및 CocoaPods 의존성을 설치하고, GitHub Secrets로부터 .env.dev를 복원합니다.
+# Node.js, CocoaPods 의존성 설치 및 .env.dev 복원 로직 포함
 
 set -e
 
@@ -13,13 +13,13 @@ cd ../..
 echo "📍 Moved to project root: $(pwd)"
 
 # ======================================================
-# 1️⃣ .env.dev 복원 (GitHub Secret: ENV_DEV_FILE)
+# 1️⃣ .env.dev 복원 (Base64 방식)
 # ======================================================
 if [ -n "$ENV_DEV_FILE" ]; then
-    echo "🧩 Restoring .env.dev file from GitHub Secrets..."
-    echo "$ENV_DEV_FILE" > .env.dev
+    echo "🧩 Decoding .env.dev from Base64..."
+    echo "$ENV_DEV_FILE" | base64 --decode > .env.dev
     export $(grep -v '^#' .env.dev | xargs)
-    echo "✅ .env.dev loaded successfully!"
+    echo "✅ .env.dev restored successfully!"
 else
     echo "⚠️ ENV_DEV_FILE not found. Skipping environment variable setup."
 fi
