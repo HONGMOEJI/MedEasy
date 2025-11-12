@@ -1,7 +1,7 @@
 #!/bin/sh
 
 # Xcode Cloud가 저장소를 클론한 후 실행되는 스크립트
-# Node.js, CocoaPods 의존성 설치 및 .env.dev 복원 로직 포함
+# Node.js, CocoaPods 의존성 설치 및 .env.dev / GoogleService-Info.plist 복원 로직 포함
 
 set -e
 
@@ -18,6 +18,10 @@ echo "📍 Moved to project root: $(pwd)"
 if [ -n "$ENV_DEV_FILE" ]; then
     echo "🧩 Decoding .env.dev from Base64..."
     echo "$ENV_DEV_FILE" | base64 --decode > .env.dev
+    # 혹시 줄바꿈 깨졌을 때를 대비
+    if command -v dos2unix &> /dev/null; then
+        dos2unix .env.dev || true
+    fi
     export $(grep -v '^#' .env.dev | xargs)
     echo "✅ .env.dev restored successfully!"
 else
@@ -25,7 +29,19 @@ else
 fi
 
 # ======================================================
-# 2️⃣ Homebrew 설정 (Apple Silicon & Intel 공통)
+# 2️⃣ GoogleService-Info.plist 복원 (Firebase 설정)
+# ======================================================
+if [ -n "$GOOGLE_SERVICE_INFO_PLIST" ]; then
+    echo "🔥 Restoring GoogleService-Info.plist..."
+    mkdir -p ios/MedEasy
+    echo "$GOOGLE_SERVICE_INFO_PLIST" | base64 --decode > ios/MedEasy/GoogleService-Info.plist
+    echo "✅ GoogleService-Info.plist restored successfully!"
+else
+    echo "⚠️ GOOGLE_SERVICE_INFO_PLIST not found. Firebase may fail to initialize!"
+fi
+
+# ======================================================
+# 3️⃣ Homebrew 설정 (Apple Silicon & Intel 공통)
 # ======================================================
 if [ -f "/opt/homebrew/bin/brew" ]; then
     eval "$(/opt/homebrew/bin/brew shellenv)"
@@ -39,7 +55,7 @@ else
 fi
 
 # ======================================================
-# 3️⃣ Node.js 설치 확인 및 버전 출력
+# 4️⃣ Node.js 설치 확인 및 버전 출력
 # ======================================================
 if ! command -v node &> /dev/null; then
     echo "📦 Node.js not found. Installing via Homebrew..."
@@ -59,7 +75,7 @@ fi
 echo "✅ npm version: $(npm --version)"
 
 # ======================================================
-# 4️⃣ npm 패키지 설치
+# 5️⃣ npm 패키지 설치
 # ======================================================
 if [ -f "package.json" ]; then
     echo "📦 Installing npm dependencies..."
@@ -69,7 +85,7 @@ else
 fi
 
 # ======================================================
-# 5️⃣ CocoaPods 설치
+# 6️⃣ CocoaPods 설치
 # ======================================================
 echo "📦 Installing CocoaPods dependencies..."
 cd ios
