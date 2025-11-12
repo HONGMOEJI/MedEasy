@@ -35,6 +35,7 @@ if [ -n "$GOOGLE_SERVICE_INFO_PLIST" ]; then
     echo "🔥 Restoring GoogleService-Info.plist..."
     mkdir -p ios/MedEasy
     echo "$GOOGLE_SERVICE_INFO_PLIST" | base64 --decode > ios/MedEasy/GoogleService-Info.plist
+    plutil -lint ios/MedEasy/GoogleService-Info.plist || true
     echo "✅ GoogleService-Info.plist restored successfully!"
 else
     echo "⚠️ GOOGLE_SERVICE_INFO_PLIST not found. Firebase may fail to initialize!"
