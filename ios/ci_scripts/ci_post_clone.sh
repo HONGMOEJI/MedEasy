@@ -1,7 +1,7 @@
 #!/bin/sh
 
 # Xcode Cloud가 저장소를 클론한 후 실행되는 스크립트
-# CocoaPods 의존성을 설치합니다
+# Node.js 및 CocoaPods 의존성을 설치하고, GitHub Secrets로부터 .env.dev를 복원합니다.
 
 set -e
 
@@ -12,50 +12,71 @@ echo "📍 Current directory: $(pwd)"
 cd ../..
 echo "📍 Moved to project root: $(pwd)"
 
-# Homebrew 경로 설정 (Apple Silicon과 Intel Mac 모두 지원)
+# ======================================================
+# 1️⃣ .env.dev 복원 (GitHub Secret: ENV_DEV_FILE)
+# ======================================================
+if [ -n "$ENV_DEV_FILE" ]; then
+    echo "🧩 Restoring .env.dev file from GitHub Secrets..."
+    echo "$ENV_DEV_FILE" > .env.dev
+    export $(grep -v '^#' .env.dev | xargs)
+    echo "✅ .env.dev loaded successfully!"
+else
+    echo "⚠️ ENV_DEV_FILE not found. Skipping environment variable setup."
+fi
+
+# ======================================================
+# 2️⃣ Homebrew 설정 (Apple Silicon & Intel 공통)
+# ======================================================
 if [ -f "/opt/homebrew/bin/brew" ]; then
     eval "$(/opt/homebrew/bin/brew shellenv)"
     echo "✅ Homebrew configured (Apple Silicon)"
 elif [ -f "/usr/local/bin/brew" ]; then
     eval "$(/usr/local/bin/brew shellenv)"
     echo "✅ Homebrew configured (Intel)"
+else
+    echo "⚠️ Homebrew not found — installing..."
+    /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
 fi
 
-# Node.js 설치 확인 및 설치
+# ======================================================
+# 3️⃣ Node.js 설치 확인 및 버전 출력
+# ======================================================
 if ! command -v node &> /dev/null; then
     echo "📦 Node.js not found. Installing via Homebrew..."
     brew install node@18
-    # Node.js PATH 추가
     export PATH="/opt/homebrew/opt/node@18/bin:$PATH"
     export PATH="/usr/local/opt/node@18/bin:$PATH"
 else
     echo "✅ Node.js already installed: $(node --version)"
 fi
 
-# npm 경로 확인
+# npm 확인
 if ! command -v npm &> /dev/null; then
     echo "❌ npm not found even after Node.js installation"
     echo "📍 PATH: $PATH"
     exit 1
 fi
-
 echo "✅ npm version: $(npm --version)"
 
-# Node modules 설치
+# ======================================================
+# 4️⃣ npm 패키지 설치
+# ======================================================
 if [ -f "package.json" ]; then
     echo "📦 Installing npm dependencies..."
     npm install --legacy-peer-deps
+else
+    echo "⚠️ package.json not found — skipping npm install"
 fi
 
-# CocoaPods 설치
+# ======================================================
+# 5️⃣ CocoaPods 설치
+# ======================================================
 echo "📦 Installing CocoaPods dependencies..."
 cd ios
 
-# 캐시된 Podfile.lock 및 Pods 제거 (Xcode Cloud 환경에서 충돌 방지)
 echo "🧹 Cleaning up old CocoaPods cache..."
 rm -rf Pods Podfile.lock
 
-# CocoaPods 설치 (repo 업데이트와 함께)
 echo "🔧 Running pod install..."
 pod install --repo-update
 
